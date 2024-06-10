@@ -5,6 +5,7 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <pthread.h>
 using namespace std;
 
 /* Les extern des variables pour la synchro ici */

@@ -5,10 +5,13 @@
 #include <cassert>
 #include <chrono>
 #include <fstream>
+#include <pthread.h>
 
 using namespace std;
 
 bool fini = false;
+
+pthread_mutex_t mutex_hashmap = PTHREAD_MUTEX_INITIALIZER;
 
 
 chrono::time_point<chrono::high_resolution_clock> datedebut;
@@ -71,6 +74,7 @@ struct streamstate *getStreamState(ogg_sync_state *pstate, ogg_page *ppage,
 
     // Add your code HERE
     // proteger l'accès à chaque hashmap
+    pthread_mutex_lock(&mutex_hashmap);
 
     if (type == TYPE_THEORA) {
       maptheorastrstate[serial] = s;
@@ -78,9 +82,11 @@ struct streamstate *getStreamState(ogg_sync_state *pstate, ogg_page *ppage,
       mapvorbisstrstate[serial] = s;
     }
 
+    pthread_mutex_unlock(&mutex_hashmap);
+
   } else {
     // proteger l'accès à chaque hashmap
-
+    pthread_mutex_lock(&mutex_hashmap);
     if (type == TYPE_THEORA) {
       auto search = maptheorastrstate.find(serial);
       assert(search != maptheorastrstate.end());
@@ -90,7 +96,7 @@ struct streamstate *getStreamState(ogg_sync_state *pstate, ogg_page *ppage,
       assert(search != mapvorbisstrstate.end());
       s = search->second;
     }
-
+    pthread_mutex_unlock(&mutex_hashmap);
     // END of your modification of code HERE
     assert(s != NULL);
   }
@@ -150,6 +156,18 @@ int decodeAllHeaders(int respac, struct streamstate *s, enum streamtype type) {
 	// BEGIN your modification HERE
         // lancement du thread gérant l'affichage (draw2SDL)
         // inserer votre code ici !!
+
+        pthread_t draw2SDL_thread;
+
+        if (pthread_create(&draw2SDL_thread, NULL, [](void* arg) -> void* {
+          int serial = *static_cast<int*>(arg);
+          draw2SDL(serial);
+          return nullptr;
+        }, static_cast<void*>(&(s->serial))) != 0) {
+            fprintf(stderr, "Error: pthread_create draw2SDL failed\n");
+        }
+
+
         // END of your modification
       }
     }

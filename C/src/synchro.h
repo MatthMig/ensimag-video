@@ -3,6 +3,7 @@
 
 #include "ensitheora.h"
 #include <stdbool.h>
+#include <pthread.h>
 
 extern bool fini;
 

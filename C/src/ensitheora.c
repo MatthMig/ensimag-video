@@ -16,6 +16,8 @@ static SDL_Renderer *renderer = NULL;
 struct TextureDate texturedate[NBTEX] = {};
 SDL_Rect rect = {};
 
+pthread_mutex_t mutex_hashmap = PTHREAD_MUTEX_INITIALIZER;
+
 struct streamstate *theorastrstate = NULL;
 
 void *draw2SDL(void *arg) {
@@ -55,7 +57,9 @@ void *draw2SDL(void *arg) {
   // ADD Your code HERE
   /* Protéger l'accès à la hashmap */
 
+  pthread_mutex_lock(&mutex_hashmap);
   HASH_FIND_INT(theorastrstate, &serial, s);
+  pthread_mutex_unlock(&mutex_hashmap);
 
   // END of your modification HERE
 

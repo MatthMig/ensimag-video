@@ -1,23 +1,62 @@
-#include "synchro.hpp"
 #include "ensitheora.hpp"
+#include "synchro.hpp"
 
-using namespace std;
-/* les variables pour la synchro, ici */
+mutex allstrm;
+mutex mutextex;
+condition_variable texprod;
+condition_variable texconso;
 
-/* l'implantation des fonctions de synchro ici */
-void envoiTailleFenetre(th_ycbcr_buffer buffer) {}
+extern bool fini;
+int tex_nbready;
+bool windowsdone;
 
-void attendreTailleFenetre() {}
+void envoiTailleFenetre(th_ycbcr_buffer buffer) {
+    lock_guard<mutex> lock(allstrm);
 
-void signalerFenetreEtTexturePrete() {}
+    windowsx = buffer[0].width;
+    windowsy = buffer[0].height;
 
-void attendreFenetreTexture() {}
+    fini = true;
 
-void debutConsommerTexture() {}
+    texprod.notify_one();
+}
 
-void finConsommerTexture() {}
+void attendreTailleFenetre() {
+    unique_lock<mutex> lock(allstrm);
+    texprod.wait(lock, []{return fini;});
+    fini = false;
+}
 
-void debutDeposerTexture() {}
+void signalerFenetreEtTexturePrete() {
+    lock_guard<mutex> lock(mutextex);
+    windowsdone = true;
+    texconso.notify_one();
+}
 
-void finDeposerTexture() {}
+void attendreFenetreTexture() {
+    unique_lock<mutex> lock(mutextex);
+    texconso.wait(lock, []{return windowsdone;});
+    windowsdone = false;
+}
 
+void debutConsommerTexture() {
+    unique_lock<mutex> lock(mutextex);
+    texconso.wait(lock, []{return tex_nbready > 0;});
+}
+
+void finConsommerTexture() {
+    lock_guard<mutex> lock(mutextex);
+    tex_nbready--;
+    texconso.notify_one();
+}
+
+void debutDeposerTexture() {
+    unique_lock<mutex> lock(mutextex);
+    texconso.wait(lock, []{return tex_nbready < NBTEX;});
+}
+
+void finDeposerTexture() {
+    lock_guard<mutex> lock(mutextex);
+    tex_nbready++;
+    texconso.notify_one();
+}

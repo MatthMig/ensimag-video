@@ -57,9 +57,13 @@ void draw2SDL(int serial) {
   // ADD Your code HERE
   /* Protéger l'accès à la hashmap */
 
+  pthread_mutex_lock(&mutex_hashmap);
+
   auto search = maptheorastrstate.find(serial);
   assert(search != maptheorastrstate.end());
   s = search->second;
+
+  pthread_mutex_unlock(&mutex_hashmap);
 
   // END of your moficiation HERE
   assert(s->strtype == TYPE_THEORA);

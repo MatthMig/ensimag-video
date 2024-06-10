@@ -1,6 +1,7 @@
 #ifndef STREAM_COMMON_H
 #define STREAM_COMMON_H
 
+#include <fstream>
 #include "ensivideo.hpp"
 #include <chrono>
 
@@ -8,6 +9,7 @@ using namespace std;
 
 extern bool fini;
 extern chrono::time_point<chrono::high_resolution_clock> datedebut;
+extern pthread_mutex_t mutex_hashmap;
 
 int msFromStart();
 void pageReader(ifstream &vf, ogg_sync_state *pstate, ogg_page *ppage);
